@@ -64,13 +64,13 @@ getgenv().Peace = {
             ["Visual"] = {
                 ["Enabled"] = true,
                 ["Keybind"] = "T",
-                ["Radius"] = 100,
+                ["Radius"] = 120,
                 ["Inline"] = {
-                    ["Transparency"] = 0.4,
+                    ["Transparency"] = 0.2,
                     ["Color"] = Color3.fromRGB(255, 255, 255)
                 },
                 ["Outline"] = {
-                    ["Transparency"] = 0.65,
+                    ["Transparency"] = 0.2,
                     ["Color"] = Color3.fromRGB(0, 0, 0)
                 },
                 ["Control"] = {
