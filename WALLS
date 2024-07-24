@@ -1,0 +1,38 @@
+local obj = game.Workspace
+local UserInputService = game:GetService("UserInputService")
+local xrayEnabled = false
+
+function XrayOn(obj)
+    for _, v in pairs(obj:GetChildren()) do
+        if v:IsA("BasePart") and not v.Parent:FindFirstChild("Humanoid") then
+            v.LocalTransparencyModifier = 1
+        end
+        XrayOn(v)
+    end
+end
+
+function XrayOff(obj)
+    for _, v in pairs(obj:GetChildren()) do
+        if v:IsA("BasePart") and not v.Parent:FindFirstChild("Humanoid") then
+            v.LocalTransparencyModifier = 0
+        end
+        XrayOff(v)
+    end
+end
+
+function ToggleXray()
+    if xrayEnabled then
+        XrayOff(obj)
+    else
+        XrayOn(obj)
+    end
+    xrayEnabled = not xrayEnabled
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.KeyCode == Enum.KeyCode.P then
+            ToggleXray()
+        end
+    end
+end)
