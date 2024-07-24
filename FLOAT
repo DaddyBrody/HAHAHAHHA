@@ -1,77 +1,76 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
 local userInputService = game:GetService("UserInputService")
+local camera = game.Workspace.CurrentCamera
+
+local bodyPosition = nil
+local visualClone = nil
+local toggleState = false
 local runService = game:GetService("RunService")
 
-local noclipEnabled = false
-local spooferEnabled = false
-local originalPosition = character.HumanoidRootPart.Position
-local fakeCharacter = nil
-
--- Function to teleport player underground
-local function teleportUnderground()
-    character.HumanoidRootPart.CFrame = CFrame.new(originalPosition.X, -10, originalPosition.Z)
+local function makeCloneVisualOnly(clone)
+    for _, part in pairs(clone:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.Anchored = true
+            part.CanCollide = false
+        elseif part:IsA("Accessory") then
+            part.Handle.Anchored = true
+            part.Handle.CanCollide = false
+        elseif part:IsA("Script") or part:IsA("LocalScript") then
+            part:Destroy()
+        end
+    end
 end
 
--- Function to create or remove the visual spoofer
-local function toggleVisualSpoofer()
-    if spooferEnabled then
-        if fakeCharacter then
-            fakeCharacter:Destroy()
-            fakeCharacter = nil
+local function toggleUnderground()
+    if toggleState then
+        -- Remove the BodyPosition and visual clone
+        if bodyPosition then
+            bodyPosition:Destroy()
+            bodyPosition = nil
         end
+        if visualClone then
+            visualClone:Destroy()
+            visualClone = nil
+        end
+        hrp.CFrame = CFrame.new(hrp.Position.X, 5, hrp.Position.Z) -- Change Y to a reasonable height to reset
+        camera.CameraSubject = character:FindFirstChildOfClass("Humanoid") -- Reset camera to the real character
     else
-        fakeCharacter = character:Clone()
-        fakeCharacter.Parent = workspace
-        fakeCharacter.HumanoidRootPart.Anchored = true
-        for _, v in pairs(fakeCharacter:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = false
-            end
-        end
+        -- Create a BodyPosition to float in the air
+        bodyPosition = Instance.new("BodyPosition")
+        bodyPosition.MaxForce = Vector3.new(0, math.huge, 0)
+        bodyPosition.D = 10
+        bodyPosition.P = 10000
+        local floatY = -20
+        bodyPosition.Position = Vector3.new(hrp.Position.X, floatY + hrp.Size.Y / 2, hrp.Position.Z)
+        bodyPosition.Parent = hrp
+        hrp.CFrame = CFrame.new(bodyPosition.Position)
 
+        -- Clone the character for visual spoofing
+        visualClone = character:Clone()
+        visualClone.Parent = workspace
+        makeCloneVisualOnly(visualClone)
+
+        local originalPosition = hrp.Position
+
+        -- Update the camera to follow the visual clone
+        camera.CameraSubject = visualClone:FindFirstChildOfClass("Humanoid")
+
+        -- Continuously update the clone's position and orientation to match the character's movement
         runService.RenderStepped:Connect(function()
-            if spooferEnabled then
-                fakeCharacter:SetPrimaryPartCFrame(CFrame.new(originalPosition))
+            if visualClone and bodyPosition then
+                local hrpCFrame = hrp.CFrame
+                visualClone:SetPrimaryPartCFrame(CFrame.new(originalPosition.X, originalPosition.Y, originalPosition.Z) * hrpCFrame.Rotation)
+                visualClone.Humanoid:Move(hrp.Position - originalPosition, false)
             end
         end)
     end
+    toggleState = not toggleState
 end
 
--- Function to allow player to walk through walls
-local function enableNoClip()
-    runService.Stepped:Connect(function()
-        if noclipEnabled then
-            for _, v in pairs(character:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = false
-                end
-            end
-        end
-    end)
-end
-
--- Function to toggle no-clip mode
-local function toggleNoClip()
-    noclipEnabled = not noclipEnabled
-    if noclipEnabled then
-        teleportUnderground()
-    else
-        character.HumanoidRootPart.CFrame = CFrame.new(originalPosition)
-    end
-end
-
--- Bind the toggle functions to the "U" and "H" keys
-userInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    if not gameProcessedEvent then
-        if input.KeyCode == Enum.KeyCode.U then
-            toggleNoClip()
-        elseif input.KeyCode == Enum.KeyCode.H then
-            spooferEnabled = not spooferEnabled
-            toggleVisualSpoofer()
-        end
+userInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.U and not gameProcessed then
+        toggleUnderground()
     end
 end)
-
--- Initialize no-clip function
-enableNoClip()
