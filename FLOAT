@@ -5,6 +5,7 @@ local userInputService = game:GetService("UserInputService")
 local camera = game.Workspace.CurrentCamera
 
 local bodyPosition = nil
+local bodyGyro = nil
 local visualClone = nil
 local toggleState = false
 local runService = game:GetService("RunService")
@@ -25,10 +26,14 @@ end
 
 local function toggleUnderground()
     if toggleState then
-        -- Remove the BodyPosition and visual clone
+        -- Remove the BodyPosition, BodyGyro, and visual clone
         if bodyPosition then
             bodyPosition:Destroy()
             bodyPosition = nil
+        end
+        if bodyGyro then
+            bodyGyro:Destroy()
+            bodyGyro = nil
         end
         if visualClone then
             visualClone:Destroy()
@@ -42,10 +47,16 @@ local function toggleUnderground()
         bodyPosition.MaxForce = Vector3.new(0, math.huge, 0)
         bodyPosition.D = 10
         bodyPosition.P = 10000
-        local floatY = -20
+        local floatY = -13
         bodyPosition.Position = Vector3.new(hrp.Position.X, floatY + hrp.Size.Y / 2, hrp.Position.Z)
         bodyPosition.Parent = hrp
-        hrp.CFrame = CFrame.new(bodyPosition.Position)
+
+        -- Create a BodyGyro to keep the character upright
+        bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.MaxTorque = Vector3.new(0, 0, 0) -- No rotation force
+        bodyGyro.P = 3000
+        bodyGyro.CFrame = hrp.CFrame
+        bodyGyro.Parent = hrp
 
         -- Clone the character for visual spoofing
         visualClone = character:Clone()
@@ -70,7 +81,7 @@ local function toggleUnderground()
 end
 
 userInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.KeyCode == Enum.KeyCode.U and not gameProcessed then
+    if input.KeyCode == Enum.KeyCode.L and not gameProcessed then
         toggleUnderground()
     end
 end)
